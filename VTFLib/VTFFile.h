@@ -792,13 +792,14 @@ namespace VTFLib
 
 		static vlVoid FlipImage( vlByte *lpImageDataRGBA8888, vlUInt uiWidth, vlUInt uiHeight );   //!< Flips an image vertically along its X-axis.
 		static vlVoid MirrorImage( vlByte *lpImageDataRGBA8888, vlUInt uiWidth, vlUInt uiHeight ); //!< Flips an image horizontally along its Y-axis.
-		vlBool CreateFloat( vlUInt uiWidth, vlUInt uiHeight, vlUInt uiFrames, vlUInt uiFaces, vlUInt uiSlices, vlByte **lpImageDataRGBA8888, const SVTFCreateOptions &VTFCreateOptions );
-		vlBool ResizeFloat( vlByte *lpSourceRGBA8888, vlByte *lpDestRGBA8888, vlUInt uiSourceWidth, vlUInt uiSourceHeight, vlUInt uiDestWidth, vlUInt uiDestHeight, VTFMipmapFilter ResizeFilter, vlBool bSRGB, vlBool hasAlpha );
+		vlBool CreateFloat( vlUInt uiWidth, vlUInt uiHeight, vlUInt uiFrames, vlUInt uiFaces, vlUInt uiSlices, vlByte **lpImageDataFP, const SVTFCreateOptions &VTFCreateOptions, const VTFImageFormat &SourceFormat );
+		static vlBool ResizeFloat( vlByte *lpSourceRGBAFP32, vlByte *lpDestRGBFP32, vlUInt uiSourceWidth, vlUInt uiSourceHeight, vlUInt uiDestWidth, vlUInt uiDestHeight, VTFMipmapFilter ResizeFilter, vlBool bSRGB );
 		static vlSingle FP16ToFP32( vlUInt16 input );
 		static vlBool HALF_HDR_TO_LDR( vlByte *lpSource, vlByte *lpDest, vlUInt uiWidth, vlUInt uiHeight, const tagSVTFImageConvertInfo &SourceInfo, const tagSVTFImageConvertInfo &DestInfo );
 		static vlBool HDR_TO_LDR( vlByte *lpSource, vlByte *lpDest, vlUInt uiWidth, vlUInt uiHeight, const tagSVTFImageConvertInfo &SourceInfo, const tagSVTFImageConvertInfo &DestInfo );
-		static vlBool LDR_To_HDR( vlByte *lpSource, vlByte *lpDest, vlUInt uiWidth, vlUInt uiHeight, const tagSVTFImageConvertInfo &SourceInfo, const tagSVTFImageConvertInfo &DestInfo );
+		static vlBool LDR_TO_HDR( vlByte *lpSource, vlByte *lpDest, vlUInt uiWidth, vlUInt uiHeight, const SVTFImageConvertInfo &SourceInfo, const SVTFImageConvertInfo &DestInfo );
 		static unsigned short FP32ToFP16( float input );
+		vlBool Create( vlUInt uiWidth, vlUInt uiHeight, vlUInt uiFrames, vlUInt uiFaces, vlUInt uiSlices, vlByte **lpImageDataRGBA8888, const SVTFCreateOptions &VTFCreateOptions, const VTFImageFormat &SourceFormat );
 	};
 } // namespace VTFLib
 
