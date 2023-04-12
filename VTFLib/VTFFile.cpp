@@ -1081,8 +1081,16 @@ vlBool CVTFFile::CreateFloat( vlUInt uiWidth, vlUInt uiHeight, vlUInt uiFrames, 
 				{
 					for ( vlUInt k = 0; k < uiSlices; k++ )
 					{
-						// TODO: add gamma correction for floating point images.
-						// this->CorrectImageGamma( lpImageDataRGBA8888[i + j + k], this->Header->Width, this->Header->Height, VTFCreateOptions.sGammaCorrection );
+						auto lpSource = lpNewImageDataFP[i + j + k];
+						auto lpSourceFP = reinterpret_cast<float *>( lpSource );
+						auto lpLastFP = reinterpret_cast<float *>( lpSource + CVTFFile::ComputeImageSize( uiWidth, uiHeight, 1, IMAGE_FORMAT_RGBA32323232F ) );
+
+						for ( int test = 0; lpSourceFP < lpLastFP; lpSourceFP += 4, test++ )
+						{
+							lpSourceFP[0] = pow( lpSourceFP[0], 1.0f / VTFCreateOptions.sGammaCorrection );
+							lpSourceFP[1] = pow( lpSourceFP[1], 1.0f / VTFCreateOptions.sGammaCorrection );
+							lpSourceFP[2] = pow( lpSourceFP[2], 1.0f / VTFCreateOptions.sGammaCorrection );
+						}
 					}
 				}
 			}
