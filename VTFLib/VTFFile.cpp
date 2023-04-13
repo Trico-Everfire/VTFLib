@@ -22,8 +22,6 @@
 #define STB_IMAGE_IMPLEMENTATION
 #undef STBI_NO_FAILURE_STRINGS
 
-#include "Float16.h"
-#include "half.hpp"
 #include "stb_image.h"
 #include "stb_image_resize.h"
 
@@ -32,6 +30,8 @@ using namespace VTFLib;
 // Conflicts with STL
 #undef min
 #undef max
+
+#include "half.hpp"
 
 // Class construction
 // ------------------
@@ -4358,38 +4358,6 @@ vlBool CVTFFile::Convert( vlByte *lpSource, vlByte *lpDest, vlUInt uiWidth, vlUI
 		return didConvert;
 	}
 
-	if ( SourceFormat == IMAGE_FORMAT_RGBA32323232F && DestFormat == IMAGE_FORMAT_RGB323232F )
-	{
-		float *lpSourceFP = reinterpret_cast<float *>( lpSource );
-		float *lpLastFP = reinterpret_cast<float *>( lpSource + CVTFFile::ComputeImageSize( uiWidth, uiHeight, 1, SourceFormat ) );
-		float *lpDestFP = reinterpret_cast<float *>( lpDest );
-
-		for ( ; lpSourceFP < lpLastFP; lpSourceFP += 4, lpDestFP += 3 )
-		{
-			lpDestFP[0] = lpSourceFP[0];
-			lpDestFP[1] = lpSourceFP[1];
-			lpDestFP[2] = lpSourceFP[2];
-		}
-		return vlTrue;
-	}
-
-	if ( SourceFormat == IMAGE_FORMAT_RGB323232F && DestFormat == IMAGE_FORMAT_RGBA32323232F )
-	{
-		float *lpSourceFP = reinterpret_cast<float *>( lpSource );
-		float *lpLastFP = reinterpret_cast<float *>( lpSource + CVTFFile::ComputeImageSize( uiWidth, uiHeight, 1, SourceFormat ) );
-		float *lpDestFP = reinterpret_cast<float *>( lpDest );
-
-		for ( ; lpSourceFP < lpLastFP; lpSourceFP += 3, lpDestFP += 4 )
-		{
-			lpDestFP[0] = lpSourceFP[0];
-			lpDestFP[1] = lpSourceFP[1];
-			lpDestFP[2] = lpSourceFP[2];
-			lpDestFP[3] = 1.f;
-		}
-
-		return vlTrue;
-	}
-
 	if ( DestFormat == IMAGE_FORMAT_RGBA16161616F )
 	{
 		if ( SourceFormat == IMAGE_FORMAT_RGBA32323232F || SourceFormat == IMAGE_FORMAT_RGB323232F )
@@ -4427,6 +4395,70 @@ vlBool CVTFFile::Convert( vlByte *lpSource, vlByte *lpDest, vlUInt uiWidth, vlUI
 		delete[] lpIntermediateRGBA;
 
 		return didConvert;
+	}
+
+	if ( SourceFormat == IMAGE_FORMAT_RGBA32323232F && DestFormat == IMAGE_FORMAT_RGB323232F )
+	{
+		float *lpSourceFP = reinterpret_cast<float *>( lpSource );
+		float *lpLastFP = reinterpret_cast<float *>( lpSource + CVTFFile::ComputeImageSize( uiWidth, uiHeight, 1, SourceFormat ) );
+		float *lpDestFP = reinterpret_cast<float *>( lpDest );
+
+		for ( ; lpSourceFP < lpLastFP; lpSourceFP += 4, lpDestFP += 3 )
+		{
+			lpDestFP[0] = lpSourceFP[0];
+			lpDestFP[1] = lpSourceFP[1];
+			lpDestFP[2] = lpSourceFP[2];
+		}
+		return vlTrue;
+	}
+
+	if ( SourceFormat == IMAGE_FORMAT_RGB323232F && DestFormat == IMAGE_FORMAT_RGBA32323232F )
+	{
+		float *lpSourceFP = reinterpret_cast<float *>( lpSource );
+		float *lpLastFP = reinterpret_cast<float *>( lpSource + CVTFFile::ComputeImageSize( uiWidth, uiHeight, 1, SourceFormat ) );
+		float *lpDestFP = reinterpret_cast<float *>( lpDest );
+
+		for ( ; lpSourceFP < lpLastFP; lpSourceFP += 3, lpDestFP += 4 )
+		{
+			lpDestFP[0] = lpSourceFP[0];
+			lpDestFP[1] = lpSourceFP[1];
+			lpDestFP[2] = lpSourceFP[2];
+			lpDestFP[3] = 1.f;
+		}
+
+		return vlTrue;
+	}
+
+	if ( DestFormat == IMAGE_FORMAT_RGBA32323232F || DestFormat == IMAGE_FORMAT_RGB323232F )
+	{
+		auto lpRGBA8888Data = new vlByte[ComputeImageSize( uiWidth, uiHeight, 1, IMAGE_FORMAT_RGBA8888 )];
+		if ( !ConvertToRGBA8888( lpSource, lpRGBA8888Data, uiWidth, uiHeight, SourceFormat ) )
+		{
+			delete[] lpRGBA8888Data;
+			return vlFalse;
+		}
+
+		if ( DestFormat == IMAGE_FORMAT_RGBA32323232F )
+			LDR_TO_HDR( lpRGBA8888Data, lpDest, uiWidth, uiHeight, VTFImageConvertInfo[IMAGE_FORMAT_RGBA8888], DestInfo );
+		else
+		{
+			auto lpRGBAFP32Data = new vlByte[ComputeImageSize( uiWidth, uiHeight, 1, IMAGE_FORMAT_RGBA32323232F )];
+
+			LDR_TO_HDR( lpRGBA8888Data, lpRGBAFP32Data, uiWidth, uiHeight, VTFImageConvertInfo[IMAGE_FORMAT_RGBA8888], VTFImageConvertInfo[IMAGE_FORMAT_RGBA32323232F] );
+
+			if ( !Convert( lpRGBAFP32Data, lpSource, uiWidth, uiHeight, IMAGE_FORMAT_RGBA32323232F, DestFormat ) )
+			{
+				delete[] lpRGBAFP32Data;
+				delete[] lpRGBA8888Data;
+				return vlFalse;
+			}
+
+			delete[] lpRGBAFP32Data;
+		}
+
+		delete[] lpRGBA8888Data;
+
+		return vlTrue;
 	}
 
 	// Do general convertions.
