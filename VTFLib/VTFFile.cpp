@@ -3840,7 +3840,7 @@ inline vlSingle CVTFFile::FP16ToFP32( vlUInt16 input )
 
 	if ( fp16.uiExponent == 31 )
 	{
-		if ( fp16.uiMantissa == 0 )		 // Check for Infinity
+		if ( fp16.uiMantissa == 0 ) // Check for Infinity
 			return sMaxFloat16Bits * ( ( fp16.uiSign == 1 ) ? -1.0f : 1.0f );
 		else if ( fp16.uiMantissa != 0 ) // Check for NaN
 			return 0.0f;
@@ -4126,7 +4126,7 @@ vlBool ConvertTemplated( vlByte *lpSource, vlByte *lpDest, vlUInt uiWidth, vlUIn
 			// default value transform
 			if ( uiSourceRMask && uiDestRMask )
 			{
-				if ( DestInfo.uiRBitsPerPixel < SourceInfo.uiRBitsPerPixel )	  // downsample
+				if ( DestInfo.uiRBitsPerPixel < SourceInfo.uiRBitsPerPixel ) // downsample
 					DR = Shrink<vlUInt16>( SR, SourceInfo.uiRBitsPerPixel, DestInfo.uiRBitsPerPixel );
 				else if ( DestInfo.uiRBitsPerPixel > SourceInfo.uiRBitsPerPixel ) // upsample
 					DR = Expand<vlUInt16>( SR, SourceInfo.uiRBitsPerPixel, DestInfo.uiRBitsPerPixel );
@@ -4136,7 +4136,7 @@ vlBool ConvertTemplated( vlByte *lpSource, vlByte *lpDest, vlUInt uiWidth, vlUIn
 
 			if ( uiSourceGMask && uiDestGMask )
 			{
-				if ( DestInfo.uiGBitsPerPixel < SourceInfo.uiGBitsPerPixel )	  // downsample
+				if ( DestInfo.uiGBitsPerPixel < SourceInfo.uiGBitsPerPixel ) // downsample
 					DG = Shrink<vlUInt16>( SG, SourceInfo.uiGBitsPerPixel, DestInfo.uiGBitsPerPixel );
 				else if ( DestInfo.uiGBitsPerPixel > SourceInfo.uiGBitsPerPixel ) // upsample
 					DG = Expand<vlUInt16>( SG, SourceInfo.uiGBitsPerPixel, DestInfo.uiGBitsPerPixel );
@@ -4146,7 +4146,7 @@ vlBool ConvertTemplated( vlByte *lpSource, vlByte *lpDest, vlUInt uiWidth, vlUIn
 
 			if ( uiSourceBMask && uiDestBMask )
 			{
-				if ( DestInfo.uiBBitsPerPixel < SourceInfo.uiBBitsPerPixel )	  // downsample
+				if ( DestInfo.uiBBitsPerPixel < SourceInfo.uiBBitsPerPixel ) // downsample
 					DB = Shrink<vlUInt16>( SB, SourceInfo.uiBBitsPerPixel, DestInfo.uiBBitsPerPixel );
 				else if ( DestInfo.uiBBitsPerPixel > SourceInfo.uiBBitsPerPixel ) // upsample
 					DB = Expand<vlUInt16>( SB, SourceInfo.uiBBitsPerPixel, DestInfo.uiBBitsPerPixel );
@@ -4156,7 +4156,7 @@ vlBool ConvertTemplated( vlByte *lpSource, vlByte *lpDest, vlUInt uiWidth, vlUIn
 
 			if ( uiSourceAMask && uiDestAMask )
 			{
-				if ( DestInfo.uiABitsPerPixel < SourceInfo.uiABitsPerPixel )	  // downsample
+				if ( DestInfo.uiABitsPerPixel < SourceInfo.uiABitsPerPixel ) // downsample
 					DA = Shrink<vlUInt16>( SA, SourceInfo.uiABitsPerPixel, DestInfo.uiABitsPerPixel );
 				else if ( DestInfo.uiABitsPerPixel > SourceInfo.uiABitsPerPixel ) // upsample
 					DA = Expand<vlUInt16>( SA, SourceInfo.uiABitsPerPixel, DestInfo.uiABitsPerPixel );
@@ -4811,4 +4811,75 @@ vlBool CVTFFile::ConvertInPlace( VTFImageFormat format )
 
 	delete[] oldData;
 	return true;
+}
+vlBool CVTFFile::SetVTFAlpha( float alpha )
+{
+	if ( !supportsAlpha() )
+		return false;
+
+	const vlUInt uiSrcWidth = GetWidth();
+	const vlUInt uiSrcHeight = GetHeight();
+	const vlUInt uiSrcDepth = GetDepth();
+	const vlUInt uiMipCount = GetMipmapCount();
+	const vlUInt uiFrameCount = GetFrameCount();
+	const vlUInt uiFaceCount = GetFaceCount();
+	const vlUInt uiSliceCount = GetDepth();
+
+	// Holy sweet mother of nested loops...
+	for ( vlUInt uiFrame = 0; uiFrame < uiFrameCount; ++uiFrame )
+	{
+		for ( vlUInt uiFace = 0; uiFace < uiFaceCount; ++uiFace )
+		{
+			for ( vlUInt uiSlice = 0; uiSlice < uiSliceCount; ++uiSlice )
+			{
+				for ( vlUInt uiMip = 0; uiMip < uiMipCount; ++uiMip )
+				{
+					auto lpSrcData = GetData( uiFrame, uiFace, uiSlice, uiMip );
+					auto lpMidData = new vlByte[ComputeImageSize( this->Header->Width, this->Header->Height, uiMipCount, IMAGE_FORMAT_RGBA32323232F )];
+
+					// Floating point 32 is the highest supported format in VTFLib
+					// Upgrading a lower format like RGBA8888 and then downgrading back to
+					// RGBA8888 should not cause any losses, converting to and from RGBA8888
+					// Is done by VTFLib itself throughout the program.
+					// Doing this with the now highest format should also not cause any losses.
+
+					vlUInt uiMipWidth, uiMipHeight, uiMipDepth;
+					ComputeMipmapDimensions( uiSrcWidth, uiSrcHeight, uiSrcDepth, uiMip, uiMipWidth, uiMipHeight, uiMipDepth );
+					if ( !Convert( lpSrcData, lpMidData, uiMipWidth, uiMipHeight, GetFormat(), IMAGE_FORMAT_RGBA32323232F ) )
+					{
+						delete[] lpMidData;
+						return false;
+					}
+
+					auto lpMidDataFP = reinterpret_cast<float *>( lpMidData );
+					auto lpMidDataEndFP = lpMidDataFP + ComputeImageSize( uiMipWidth, uiMipHeight, uiMipCount, IMAGE_FORMAT_RGBA32323232F );
+
+					for ( ; lpMidDataFP < lpMidDataEndFP; lpMidDataFP += 4 )
+					{
+						lpMidDataFP[3] = alpha;
+					}
+
+					if ( !Convert( lpMidData, lpSrcData, uiMipWidth, uiMipHeight, IMAGE_FORMAT_RGBA32323232F, GetFormat() ) )
+					{
+						delete[] lpMidData;
+						return false;
+					}
+
+					SetData( uiFrame, uiFace, uiSlice, uiMip, lpSrcData );
+
+					delete[] lpMidData;
+				}
+			}
+		}
+	}
+
+	return true;
+}
+vlBool CVTFFile::SetVTFAlpha( unsigned char alpha )
+{
+	return SetVTFAlpha( alpha / 255.f );
+}
+vlBool CVTFFile::supportsAlpha()
+{
+	return GetImageFormatInfo( this->Header->ImageFormat ).uiAlphaBitsPerPixel > 0;
 }
