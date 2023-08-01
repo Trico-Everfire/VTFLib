@@ -220,6 +220,17 @@ vlBool CVTFFile::Init( vlUInt uiWidth, vlUInt uiHeight, vlUInt uiFrames, vlUInt 
 	// Check options.
 	//
 
+	if ( ImageFormat == IMAGE_FORMAT_ATI2N_OLD )
+	{
+		ImageFormat = IMAGE_FORMAT_ATI2N;
+		this->OldATIFormat = true;
+	}
+	if ( ImageFormat == IMAGE_FORMAT_ATI1N_OLD )
+	{
+		ImageFormat = IMAGE_FORMAT_ATI1N;
+		this->OldATIFormat = true;
+	}
+
 	// Check if width is valid (power of 2 and fits in a short).
 	if ( !this->IsPowerOfTwo( uiWidth ) || uiWidth > 0xffff )
 	{
