@@ -82,19 +82,19 @@ extern "C"
 #pragma pack( 1 )
 	typedef struct tagSVTFCreateOptions
 	{
-		vlUInt uiVersion[2];		//!< Output image version.
-		VTFImageFormat ImageFormat; //!< Output image output storage format.
+		vlUInt uiVersion[2];		  //!< Output image version.
+		VTFImageFormat ImageFormat;	  //!< Output image output storage format.
 
-		vlUInt uiFlags;			   //!< Output image header flags.
-		vlUInt uiStartFrame;	   //!< Output image start frame.
-		vlSingle sBumpScale;	   //!< Output image bump scale.
-		vlSingle sReflectivity[3]; //!< Output image reflectivity. (Only used if bReflectivity is false.)
+		vlUInt uiFlags;				  //!< Output image header flags.
+		vlUInt uiStartFrame;		  //!< Output image start frame.
+		vlSingle sBumpScale;		  //!< Output image bump scale.
+		vlSingle sReflectivity[3];	  //!< Output image reflectivity. (Only used if bReflectivity is false.)
 
 		vlBool bMipmaps;			  //!< Generate MIPmaps. (Space is always allocated.)
 		VTFMipmapFilter MipmapFilter; //!< MIP map re-size filter.
 
-		vlBool bThumbnail;	  //!< Generate thumbnail image.
-		vlBool bReflectivity; //!< Compute image reflectivity.
+		vlBool bThumbnail;			  //!< Generate thumbnail image.
+		vlBool bReflectivity;		  //!< Compute image reflectivity.
 
 		vlBool bResize;				  //!< Resize the input image.
 		VTFResizeMethod ResizeMethod; //!< New size compution method.
@@ -102,15 +102,15 @@ extern "C"
 		vlUInt uiResizeWidth;		  //!< New width after re-size if method is RESIZE_SET.
 		vlUInt uiResizeHeight;		  //!< New height after re-size if method is RESIZE_SET.
 
-		vlBool bResizeClamp;		//!< Clamp re-size size.
-		vlUInt uiResizeClampWidth;	//!< Maximum width to re-size to.
-		vlUInt uiResizeClampHeight; //!< Maximum height to re-size to.
+		vlBool bResizeClamp;		  //!< Clamp re-size size.
+		vlUInt uiResizeClampWidth;	  //!< Maximum width to re-size to.
+		vlUInt uiResizeClampHeight;	  //!< Maximum height to re-size to.
 
-		vlBool bGammaCorrection;   //!< Gamma correct input image.
-		vlSingle sGammaCorrection; //!< Gamma correction to apply.
+		vlBool bGammaCorrection;	  //!< Gamma correct input image.
+		vlSingle sGammaCorrection;	  //!< Gamma correction to apply.
 
-		vlBool bSphereMap; //!< Generate a sphere map for six faced environment maps.
-		vlBool bSRGB;	   //!< Texture is in the SRGB color space.
+		vlBool bSphereMap;			  //!< Generate a sphere map for six faced environment maps.
+		vlBool bSRGB;				  //!< Texture is in the SRGB color space.
 	} SVTFCreateOptions;
 #pragma pack()
 
@@ -165,13 +165,15 @@ namespace VTFLib
 	class VTFLIB_API CVTFFile
 	{
 	private:
-		SVTFHeader *Header; // VTF header
+		SVTFHeader *Header;			  // VTF header
 
-		vlUInt uiImageBufferSize; // Size of VTF image data buffer
-		vlByte *lpImageData;	  // VTF image buffer
+		vlUInt uiImageBufferSize;	  // Size of VTF image data buffer
+		vlByte *lpImageData;		  // VTF image buffer
 
 		vlUInt uiThumbnailBufferSize; // Size of VTF thumbnail image data buffer
 		vlByte *lpThumbnailImageData; // VTF thumbnail image buffer
+
+		bool OldATIFormat = false;
 
 	public:
 		CVTFFile(); //!< Default constructor
@@ -381,21 +383,21 @@ namespace VTFLib
 		vlUInt GetMinorVersion() const; //!< Returns the VTF file minor version number.
 		bool SetVersion( vlUInt major, vlUInt minor );
 
-		vlUInt GetSize() const; //!< Returns the VTF file size in bytes.
+		vlUInt GetSize() const;						 //!< Returns the VTF file size in bytes.
 
-		vlUInt GetWidth() const;  //!< Returns the width of the image in pixels from the VTF header.
-		vlUInt GetHeight() const; //!< Returns the height of the image in pixels from the VTF header.
-		vlUInt GetDepth() const;  //!< Returns the depth of the image in pixels from the VTF header.
+		vlUInt GetWidth() const;					 //!< Returns the width of the image in pixels from the VTF header.
+		vlUInt GetHeight() const;					 //!< Returns the height of the image in pixels from the VTF header.
+		vlUInt GetDepth() const;					 //!< Returns the depth of the image in pixels from the VTF header.
 
-		vlUInt GetFrameCount() const;  //!< Returns the frame count from the VTF header.
-		vlUInt GetFaceCount() const;   //!< Returns the face count from the VTF header.
-		vlUInt GetMipmapCount() const; //!< Returns the number of MIP levels in the image from the VTF header.
+		vlUInt GetFrameCount() const;				 //!< Returns the frame count from the VTF header.
+		vlUInt GetFaceCount() const;				 //!< Returns the face count from the VTF header.
+		vlUInt GetMipmapCount() const;				 //!< Returns the number of MIP levels in the image from the VTF header.
 
 		vlUInt GetStartFrame() const;				 //!< Returns the start frame from the VTF header.
 		vlVoid SetStartFrame( vlUInt uiStartFrame ); //!< Sets the start frame in the VTF header.
 
-		vlUInt GetFlags() const;		   //!< Returns the image flags from the VTF header.
-		vlVoid SetFlags( vlUInt uiFlags ); //!< Sets the image flags in the VTF header.
+		vlUInt GetFlags() const;					 //!< Returns the image flags from the VTF header.
+		vlVoid SetFlags( vlUInt uiFlags );			 //!< Sets the image flags in the VTF header.
 
 		//! Check if a specific flag is set in the VTF header.
 		/*!
@@ -476,10 +478,10 @@ namespace VTFLib
 		vlVoid SetData( vlUInt uiFrame, vlUInt uiFace, vlUInt uiSlice, vlUInt uiMipmapLevel, vlByte *lpData );
 
 	public:
-		vlBool GetHasThumbnail() const; //!< Returns if a the current VTF image image contains a thumbnail version.
+		vlBool GetHasThumbnail() const;			   //!< Returns if a the current VTF image image contains a thumbnail version.
 
-		vlUInt GetThumbnailWidth() const;  //!< Returns the width in pixels of the current images thumbnail.
-		vlUInt GetThumbnailHeight() const; //!< Returns the heught in pixels of the current images thumbnail.
+		vlUInt GetThumbnailWidth() const;		   //!< Returns the width in pixels of the current images thumbnail.
+		vlUInt GetThumbnailHeight() const;		   //!< Returns the heught in pixels of the current images thumbnail.
 
 		VTFImageFormat GetThumbnailFormat() const; //!< Returns the image format of the current images thumbnail.
 
@@ -503,7 +505,7 @@ namespace VTFLib
 		vlVoid SetThumbnailData( vlByte *lpData );
 
 	public:
-		vlBool GetSupportsResources() const; //!< Returns true if the current VTF file version supports resources.
+		vlBool GetSupportsResources() const;			//!< Returns true if the current VTF file version supports resources.
 
 		vlUInt GetResourceCount() const;				//!< Returns the number of resources contained within the VTF file.
 		vlUInt GetResourceType( vlUInt uiIndex ) const; //!< Returns the resource type;
@@ -619,6 +621,10 @@ namespace VTFLib
 		vlBool SetVTFAlpha( float alpha );
 
 		vlBool SetVTFAlpha( unsigned char alpha );
+
+		vlVoid UseOldATIFormat( bool has ) { this->OldATIFormat = has; }
+
+		vlBool HasOldATIFormat() { return this->OldATIFormat; }
 
 	public:
 		//! Get VTFImageFormat info.

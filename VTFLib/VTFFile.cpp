@@ -1426,6 +1426,25 @@ vlBool CVTFFile::Load( IO::Readers::IReader *Reader, vlBool bHeaderOnly )
 			return vlTrue;
 		}
 
+		// Between different branches of Source Engine games
+		// the ATI formats are shifted in the ImageFormats enum
+		// and will crash VTFLib if a old branch ATI were to
+		// try and load, given they are the same identical format
+		// we can just set it to VTFLib's ATI enum to load it correctly.
+		// The numbers we change from are source internal formats
+		// and can be safely changed. If a problem ever does arise...
+		// Blame valve and pray to the rat gods for salvation.
+		if ( this->Header->ImageFormat == IMAGE_FORMAT_ATI2N_OLD )
+		{
+			this->Header->ImageFormat = IMAGE_FORMAT_ATI2N;
+			this->OldATIFormat = true;
+		}
+		if ( this->Header->ImageFormat == IMAGE_FORMAT_ATI1N_OLD )
+		{
+			this->Header->ImageFormat = IMAGE_FORMAT_ATI1N;
+			this->OldATIFormat = true;
+		}
+
 		// work out how big out buffers need to be
 		this->uiImageBufferSize = this->ComputeImageSize( this->Header->Width, this->Header->Height, this->Header->Depth, this->Header->MipCount, this->Header->ImageFormat ) * this->GetFaceCount() * this->GetFrameCount();
 
@@ -1722,10 +1741,25 @@ vlBool CVTFFile::Save( IO::Writers::IWriter *Writer ) const
 			throw 0;
 
 		// Write the header.
+
+		auto format = this->Header->ImageFormat;
+
+		if ( format == IMAGE_FORMAT_ATI2N && OldATIFormat )
+		{
+			this->Header->ImageFormat = IMAGE_FORMAT_ATI2N_OLD;
+		}
+
+		if ( format == IMAGE_FORMAT_ATI1N && OldATIFormat )
+		{
+			this->Header->ImageFormat = IMAGE_FORMAT_ATI1N_OLD;
+		}
+
 		if ( Writer->Write( this->Header, this->Header->HeaderSize ) != this->Header->HeaderSize )
 		{
 			throw 0;
 		}
+
+		this->Header->ImageFormat = format;
 
 		if ( this->GetSupportsResources() )
 		{
@@ -3840,7 +3874,7 @@ inline vlSingle CVTFFile::FP16ToFP32( vlUInt16 input )
 
 	if ( fp16.uiExponent == 31 )
 	{
-		if ( fp16.uiMantissa == 0 ) // Check for Infinity
+		if ( fp16.uiMantissa == 0 )		 // Check for Infinity
 			return sMaxFloat16Bits * ( ( fp16.uiSign == 1 ) ? -1.0f : 1.0f );
 		else if ( fp16.uiMantissa != 0 ) // Check for NaN
 			return 0.0f;
@@ -4126,7 +4160,7 @@ vlBool ConvertTemplated( vlByte *lpSource, vlByte *lpDest, vlUInt uiWidth, vlUIn
 			// default value transform
 			if ( uiSourceRMask && uiDestRMask )
 			{
-				if ( DestInfo.uiRBitsPerPixel < SourceInfo.uiRBitsPerPixel ) // downsample
+				if ( DestInfo.uiRBitsPerPixel < SourceInfo.uiRBitsPerPixel )	  // downsample
 					DR = Shrink<vlUInt16>( SR, SourceInfo.uiRBitsPerPixel, DestInfo.uiRBitsPerPixel );
 				else if ( DestInfo.uiRBitsPerPixel > SourceInfo.uiRBitsPerPixel ) // upsample
 					DR = Expand<vlUInt16>( SR, SourceInfo.uiRBitsPerPixel, DestInfo.uiRBitsPerPixel );
@@ -4136,7 +4170,7 @@ vlBool ConvertTemplated( vlByte *lpSource, vlByte *lpDest, vlUInt uiWidth, vlUIn
 
 			if ( uiSourceGMask && uiDestGMask )
 			{
-				if ( DestInfo.uiGBitsPerPixel < SourceInfo.uiGBitsPerPixel ) // downsample
+				if ( DestInfo.uiGBitsPerPixel < SourceInfo.uiGBitsPerPixel )	  // downsample
 					DG = Shrink<vlUInt16>( SG, SourceInfo.uiGBitsPerPixel, DestInfo.uiGBitsPerPixel );
 				else if ( DestInfo.uiGBitsPerPixel > SourceInfo.uiGBitsPerPixel ) // upsample
 					DG = Expand<vlUInt16>( SG, SourceInfo.uiGBitsPerPixel, DestInfo.uiGBitsPerPixel );
@@ -4146,7 +4180,7 @@ vlBool ConvertTemplated( vlByte *lpSource, vlByte *lpDest, vlUInt uiWidth, vlUIn
 
 			if ( uiSourceBMask && uiDestBMask )
 			{
-				if ( DestInfo.uiBBitsPerPixel < SourceInfo.uiBBitsPerPixel ) // downsample
+				if ( DestInfo.uiBBitsPerPixel < SourceInfo.uiBBitsPerPixel )	  // downsample
 					DB = Shrink<vlUInt16>( SB, SourceInfo.uiBBitsPerPixel, DestInfo.uiBBitsPerPixel );
 				else if ( DestInfo.uiBBitsPerPixel > SourceInfo.uiBBitsPerPixel ) // upsample
 					DB = Expand<vlUInt16>( SB, SourceInfo.uiBBitsPerPixel, DestInfo.uiBBitsPerPixel );
@@ -4156,7 +4190,7 @@ vlBool ConvertTemplated( vlByte *lpSource, vlByte *lpDest, vlUInt uiWidth, vlUIn
 
 			if ( uiSourceAMask && uiDestAMask )
 			{
-				if ( DestInfo.uiABitsPerPixel < SourceInfo.uiABitsPerPixel ) // downsample
+				if ( DestInfo.uiABitsPerPixel < SourceInfo.uiABitsPerPixel )	  // downsample
 					DA = Shrink<vlUInt16>( SA, SourceInfo.uiABitsPerPixel, DestInfo.uiABitsPerPixel );
 				else if ( DestInfo.uiABitsPerPixel > SourceInfo.uiABitsPerPixel ) // upsample
 					DA = Expand<vlUInt16>( SA, SourceInfo.uiABitsPerPixel, DestInfo.uiABitsPerPixel );
