@@ -545,6 +545,9 @@ namespace VTFLib
 		vlBool SetAuxCompressionLevel( vlInt iCompressionLevel );
 
 	public:
+		vlBool setCustomMipmap( vlUInt frame, vlUInt face, vlUInt slice, vlUInt mipmapLevel, vlByte *lpData, vlUInt width, vlUInt height );
+
+	public:
 		//! Generate MIP maps from the main image data.
 		/*!
 			Generates MIP maps for the image down to 1 x 1 pixel using the data in

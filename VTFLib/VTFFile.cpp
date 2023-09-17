@@ -4812,3 +4812,50 @@ vlBool CVTFFile::ConvertInPlace( VTFImageFormat format )
 	delete[] oldData;
 	return true;
 }
+
+vlBool CVTFFile::setCustomMipmap( vlUInt frame, vlUInt face, vlUInt slice, vlUInt mipmapLevel, vlByte *lpData, vlUInt width, vlUInt height )
+{
+	if ( !this->IsLoaded() )
+		return 0;
+
+	vlUInt maxCubemaps = this->ComputeMipmapCount( GetWidth(), GetHeight(), GetDepth() );
+
+	if ( mipmapLevel > maxCubemaps )
+		return 0;
+
+	if ( this->Header->MipCount + 1 > mipmapLevel )
+		return 0;
+
+	if ( this->Header->MipCount + 1 == mipmapLevel )
+		this->Header->MipCount++;
+
+	vlUInt correctMipmapSize = ComputeMipmapSize( this->Header->Width, this->Header->Height, 1, mipmapLevel, this->Header->ImageFormat );
+
+	vlUInt uiMipWidth, uiMipHeight, uiMipDepth;
+	ComputeMipmapDimensions( this->Header->Width, this->Header->Height, this->Header->Depth, mipmapLevel, uiMipWidth, uiMipHeight, uiMipDepth );
+
+	vlByte *pMipMapData = lpData;
+
+	if ( width != uiMipWidth || height != uiMipHeight )
+	{
+		pMipMapData = new vlByte[correctMipmapSize];
+		if ( !( this->Header->ImageFormat == IMAGE_FORMAT_RGBA32323232F || this->Header->ImageFormat == IMAGE_FORMAT_RGB323232F || this->Header->ImageFormat == IMAGE_FORMAT_RGBA16161616F ) )
+		{
+			if ( !this->Resize( lpData, pMipMapData, width, height, uiMipWidth, uiMipHeight, VTFMipmapFilter::MIPMAP_FILTER_GAUSSIAN, true ) )
+			{
+				return 0;
+			}
+		}
+		else
+		{
+			if ( !this->ResizeFloat( lpData, pMipMapData, width, height, uiMipWidth, uiMipHeight, VTFMipmapFilter::MIPMAP_FILTER_GAUSSIAN, true ) )
+			{
+				return 0;
+			}
+		}
+	}
+
+	this->SetData( frame, face, slice, mipmapLevel, pMipMapData );
+
+	return 0;
+}
