@@ -4813,7 +4813,9 @@ vlBool CVTFFile::ConvertInPlace( VTFImageFormat format )
 	return true;
 }
 
-vlBool CVTFFile::setCustomMipmap( vlUInt frame, vlUInt face, vlUInt slice, vlUInt mipmapLevel, vlByte *lpData, vlUInt width, vlUInt height )
+vlBool
+CVTFFile::SetCustomMipmap(vlUInt frame, vlUInt face, vlUInt slice, vlUInt mipmapLevel, vlByte *lpData, vlUInt width,
+                          vlUInt height, VTFImageFormat format)
 {
 	if ( !this->IsLoaded() )
 		return 0;
@@ -4823,10 +4825,10 @@ vlBool CVTFFile::setCustomMipmap( vlUInt frame, vlUInt face, vlUInt slice, vlUIn
 	if ( mipmapLevel > maxCubemaps )
 		return 0;
 
-	if ( this->Header->MipCount + 1 > mipmapLevel )
+	if ( mipmapLevel > this->Header->MipCount + 1 )
 		return 0;
 
-	if ( this->Header->MipCount + 1 == mipmapLevel )
+	if ( mipmapLevel == this->Header->MipCount + 1 )
 		this->Header->MipCount++;
 
 	vlUInt correctMipmapSize = ComputeMipmapSize( this->Header->Width, this->Header->Height, 1, mipmapLevel, this->Header->ImageFormat );
@@ -4834,28 +4836,89 @@ vlBool CVTFFile::setCustomMipmap( vlUInt frame, vlUInt face, vlUInt slice, vlUIn
 	vlUInt uiMipWidth, uiMipHeight, uiMipDepth;
 	ComputeMipmapDimensions( this->Header->Width, this->Header->Height, this->Header->Depth, mipmapLevel, uiMipWidth, uiMipHeight, uiMipDepth );
 
-	vlByte *pMipMapData = lpData;
+	vlByte *pMipMapData;
 
 	if ( width != uiMipWidth || height != uiMipHeight )
 	{
 		pMipMapData = new vlByte[correctMipmapSize];
 		if ( !( this->Header->ImageFormat == IMAGE_FORMAT_RGBA32323232F || this->Header->ImageFormat == IMAGE_FORMAT_RGB323232F || this->Header->ImageFormat == IMAGE_FORMAT_RGBA16161616F ) )
 		{
-			if ( !this->Resize( lpData, pMipMapData, width, height, uiMipWidth, uiMipHeight, VTFMipmapFilter::MIPMAP_FILTER_GAUSSIAN, true ) )
+
+            auto pTempData = new vlByte[VTFLib::CVTFFile::ComputeImageSize(width,height,1,IMAGE_FORMAT_RGBA8888)];
+            auto pScaledTempData = new vlByte[VTFLib::CVTFFile::ComputeImageSize(uiMipWidth,uiMipHeight,1,IMAGE_FORMAT_RGBA8888)];
+
+            if(!VTFLib::CVTFFile::ConvertToRGBA8888(lpData, pTempData, width, height, format))
+            {
+                delete[] pTempData;
+                delete[] pScaledTempData;
+                return 0;
+            }
+
+			if ( !CVTFFile::Resize( pTempData, pScaledTempData, width, height, uiMipWidth, uiMipHeight, VTFMipmapFilter::MIPMAP_FILTER_GAUSSIAN, true ) )
 			{
+                delete[] pTempData;
+                delete[] pScaledTempData;
 				return 0;
 			}
+
+            if(!CVTFFile::ConvertFromRGBA8888(pScaledTempData, pMipMapData, uiMipWidth, uiMipHeight, this->Header->ImageFormat))
+            {
+                delete[] pTempData;
+                delete[] pScaledTempData;
+                return 0;
+            }
+
+            delete[] pTempData;
+            delete[] pScaledTempData;
+
 		}
 		else
 		{
-			if ( !this->ResizeFloat( lpData, pMipMapData, width, height, uiMipWidth, uiMipHeight, VTFMipmapFilter::MIPMAP_FILTER_GAUSSIAN, true ) )
-			{
-				return 0;
-			}
+
+            auto pTempData = new vlByte[VTFLib::CVTFFile::ComputeImageSize(width,height,1,IMAGE_FORMAT_RGBA32323232F)];
+            auto pScaledTempData = new vlByte[VTFLib::CVTFFile::ComputeImageSize(uiMipWidth,uiMipHeight,1,IMAGE_FORMAT_RGBA32323232F)];
+
+            if(!VTFLib::CVTFFile::Convert(lpData, pTempData, width, height, format, IMAGE_FORMAT_RGBA32323232F))
+            {
+                delete[] pTempData;
+                delete[] pScaledTempData;
+                delete[] pMipMapData;
+                return 0;
+            }
+
+            if ( !CVTFFile::ResizeFloat( lpData, pScaledTempData, width, height, uiMipWidth, uiMipHeight, VTFMipmapFilter::MIPMAP_FILTER_GAUSSIAN, true ) )
+            {
+                delete[] pTempData;
+                delete[] pScaledTempData;
+                delete[] pMipMapData;
+                return 0;
+            }
+
+            if(!CVTFFile::Convert(pScaledTempData, pMipMapData, uiMipWidth, uiMipHeight, IMAGE_FORMAT_RGBA32323232F, this->Header->ImageFormat))
+            {
+                delete[] pTempData;
+                delete[] pScaledTempData;
+                delete[] pMipMapData;
+                return 0;
+            }
+
+            delete[] pTempData;
+            delete[] pScaledTempData;
 		}
-	}
+	} else {
+
+        pMipMapData = new vlByte[correctMipmapSize];
+        if(!CVTFFile::Convert(lpData, pMipMapData, uiMipWidth, uiMipHeight, format, this->Header->ImageFormat))
+        {
+            delete[] pMipMapData;
+            return 0;
+        }
+    }
+
 
 	this->SetData( frame, face, slice, mipmapLevel, pMipMapData );
 
-	return 0;
+    delete[] pMipMapData;
+
+	return 1;
 }
