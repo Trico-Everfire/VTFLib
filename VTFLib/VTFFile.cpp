@@ -4121,7 +4121,7 @@ vlBool CVTFFile::ConvertInPlace(VTFImageFormat format)
 	const vlUInt uiSliceCount = GetDepth();
 
 	// Compute and allocate a working buffer- will replace lpImageData at the end
-	const vlUInt usBufferSize = this->ComputeImageSize(this->Header->Width, this->Header->Height, uiMipCount, format) * uiFrameCount * uiFaceCount;
+	const vlUInt usBufferSize = this->ComputeImageSize(this->Header->Width, this->Header->Height, uiSrcDepth, uiMipCount, format) * uiFrameCount * uiFaceCount;
 	auto* buffer = new vlByte[usBufferSize];
 
 	// Holy sweet mother of nested loops...
