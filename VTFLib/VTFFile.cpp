@@ -4828,10 +4828,28 @@ CVTFFile::SetCustomMipmap(vlUInt frame, vlUInt face, vlUInt slice, vlUInt mipmap
 	if ( mipmapLevel > this->Header->MipCount + 1 )
 		return 0;
 
-	if ( mipmapLevel == this->Header->MipCount + 1 )
-		this->Header->MipCount++;
+    vlUInt correctMipmapSize = ComputeMipmapSize( this->Header->Width, this->Header->Height, 1, mipmapLevel, this->Header->ImageFormat );
 
-	vlUInt correctMipmapSize = ComputeMipmapSize( this->Header->Width, this->Header->Height, 1, mipmapLevel, this->Header->ImageFormat );
+
+    if ( mipmapLevel == this->Header->MipCount + 1 ) {
+        vlUInt dataSize = this->ComputeImageSize( this->Header->Width, this->Header->Height, this->Header->Depth, this->Header->MipCount, this->Header->ImageFormat ) * this->GetFrameCount() * this->GetFaceCount();
+
+//        vlUInt uiOffset = ComputeDataOffset( 0, 0, 1, 0, this->Header->ImageFormat );
+//
+//        std::cout << "Offset: ";
+//        std::cout << uiOffset;
+//        std::cout << "\nImage Format: ";
+//        std::cout << this->Header->ImageFormat;
+//        std::cout << '\n';
+        vlUInt uiOffset = this->ComputeDataOffset( frame, face, slice, mipmapLevel, this->Header->ImageFormat );
+        vlByte *oldBuffer = this->lpImageData;
+        this->lpImageData = new vlByte[this->uiImageBufferSize + dataSize];
+        std::copy(oldBuffer,  oldBuffer + this->uiImageBufferSize, (this->lpImageData));
+
+        this->uiImageBufferSize += dataSize;
+        this->Header->MipCount++;
+
+    }
 
 	vlUInt uiMipWidth, uiMipHeight, uiMipDepth;
 	ComputeMipmapDimensions( this->Header->Width, this->Header->Height, this->Header->Depth, mipmapLevel, uiMipWidth, uiMipHeight, uiMipDepth );
@@ -4886,7 +4904,7 @@ CVTFFile::SetCustomMipmap(vlUInt frame, vlUInt face, vlUInt slice, vlUInt mipmap
                 return 0;
             }
 
-            if ( !CVTFFile::ResizeFloat( lpData, pScaledTempData, width, height, uiMipWidth, uiMipHeight, VTFMipmapFilter::MIPMAP_FILTER_GAUSSIAN, true ) )
+            if ( !CVTFFile::ResizeFloat( pTempData, pScaledTempData, width, height, uiMipWidth, uiMipHeight, VTFMipmapFilter::MIPMAP_FILTER_GAUSSIAN, true ) )
             {
                 delete[] pTempData;
                 delete[] pScaledTempData;
