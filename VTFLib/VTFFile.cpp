@@ -31,6 +31,18 @@ using namespace VTFLib;
 #undef min
 #undef max
 
+static stbir_filter GetSTBIRFilterFromVTFMipmapFilter(VTFMipmapFilter MipmapFilter) {
+    switch (MipmapFilter) {
+        case MIPMAP_FILTER_BOX:      return STBIR_FILTER_BOX;
+        case MIPMAP_FILTER_TRIANGLE: return STBIR_FILTER_TRIANGLE;
+        case MIPMAP_FILTER_CUBIC:    return STBIR_FILTER_CUBICBSPLINE;
+        case MIPMAP_FILTER_CATROM:   return STBIR_FILTER_CATMULLROM;
+        case MIPMAP_FILTER_MITCHELL: return STBIR_FILTER_MITCHELL;
+        default:                     break;
+    }
+    return STBIR_FILTER_DEFAULT;
+}
+
 #include "half.hpp"
 
 // Class construction
@@ -767,10 +779,12 @@ vlBool CVTFFile::Create( vlUInt uiWidth, vlUInt uiHeight, vlUInt uiFrames, vlUIn
 							vlUShort usWidth = std::max( 1, this->Header->Width >> m );
 							vlUShort usHeight = std::max( 1, this->Header->Height >> m );
 
+                            stbir_filter iMipFilter = GetSTBIRFilterFromVTFMipmapFilter(VTFCreateOptions.MipmapFilter);
+
 							if ( !stbir_resize_uint8_generic(
 									 pSource, this->Header->Width, this->Header->Height, 0,
 									 temp.data(), usWidth, usHeight, 0,
-									 4, 3, 0, STBIR_EDGE_CLAMP, STBIR_FILTER_BOX, VTFCreateOptions.bSRGB ? STBIR_COLORSPACE_SRGB : STBIR_COLORSPACE_LINEAR, NULL ) )
+									 4, 3, 0, STBIR_EDGE_CLAMP, iMipFilter, VTFCreateOptions.bSRGB ? STBIR_COLORSPACE_SRGB : STBIR_COLORSPACE_LINEAR, NULL ) )
 							{
 								throw 0;
 							}
@@ -4581,10 +4595,13 @@ vlBool CVTFFile::Resize( vlByte *lpSourceRGBA8888, vlByte *lpDestRGBA8888, vlUIn
 {
 	assert( ResizeFilter >= 0 && ResizeFilter < MIPMAP_FILTER_COUNT );
 
-	if ( !stbir_resize_uint8_generic(
+    stbir_filter iMipFilter = GetSTBIRFilterFromVTFMipmapFilter(ResizeFilter);
+
+
+    if ( !stbir_resize_uint8_generic(
 			 lpSourceRGBA8888, uiSourceWidth, uiSourceHeight, 0,
 			 lpDestRGBA8888, uiDestWidth, uiDestHeight, 0,
-			 4, 3, 0, STBIR_EDGE_CLAMP, STBIR_FILTER_BOX, bSRGB ? STBIR_COLORSPACE_SRGB : STBIR_COLORSPACE_LINEAR, NULL ) )
+			 4, 3, 0, STBIR_EDGE_CLAMP, iMipFilter, bSRGB ? STBIR_COLORSPACE_SRGB : STBIR_COLORSPACE_LINEAR, NULL ) )
 	{
 		LastError.Set( "Error resizing image." );
 		return vlFalse;
@@ -4597,10 +4614,13 @@ vlBool CVTFFile::ResizeFloat( vlByte *lpSourceRGBAFP32, vlByte *lpDestRGBFP32, v
 {
 	assert( ResizeFilter >= 0 && ResizeFilter < MIPMAP_FILTER_COUNT );
 
-	if ( !stbir_resize_float_generic(
+    stbir_filter iMipFilter = GetSTBIRFilterFromVTFMipmapFilter(ResizeFilter);
+
+
+    if ( !stbir_resize_float_generic(
 			 reinterpret_cast<float *>( lpSourceRGBAFP32 ), uiSourceWidth, uiSourceHeight, 0,
 			 reinterpret_cast<float *>( lpDestRGBFP32 ), uiDestWidth, uiDestHeight, 0,
-			 4, 3, 0, STBIR_EDGE_CLAMP, STBIR_FILTER_BOX, bSRGB ? STBIR_COLORSPACE_SRGB : STBIR_COLORSPACE_LINEAR, NULL ) )
+			 4, 3, 0, STBIR_EDGE_CLAMP, iMipFilter, bSRGB ? STBIR_COLORSPACE_SRGB : STBIR_COLORSPACE_LINEAR, NULL ) )
 	{
 		LastError.Set( "Error resizing image." );
 		return vlFalse;
